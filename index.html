@@ -1,0 +1,1058 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>光合作用 Dashboard</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700;900&display=swap');
+
+    :root {
+      --green-dark:  #2E7D32;
+      --green-main:  #43A047;
+      --green-light: #A5D6A7;
+      --green-pale:  #E8F5E9;
+      --sky-blue:    #29B6F6;
+      --sun-yellow:  #FFD54F;
+      --text-dark:   #1B5E20;
+      --text-mid:    #388E3C;
+      --shadow:      0 4px 20px rgba(46,125,50,0.12);
+    }
+
+    * { margin:0; padding:0; box-sizing:border-box; }
+
+    body {
+      font-family: 'Noto Sans TC', 'Microsoft JhengHei', sans-serif;
+      background: #F1F8E9;
+      color: var(--text-dark);
+    }
+
+    /* ── Header ── */
+    header {
+      background: linear-gradient(135deg, #1B5E20 0%, #2E7D32 50%, #43A047 100%);
+      color: #fff;
+      text-align: center;
+      padding: 48px 20px 36px;
+      position: relative;
+      overflow: hidden;
+    }
+    header::before {
+      content: '';
+      position: absolute; inset: 0;
+      background: url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='0.05'%3E%3Ccircle cx='30' cy='30' r='4'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
+    }
+    header h1 { font-size: 2.6rem; font-weight: 900; letter-spacing: .08em; position: relative; }
+    header p  { font-size: 1rem; opacity: .8; margin-top: 8px; position: relative; }
+
+    /* ── Nav ── */
+    nav {
+      background: #fff;
+      box-shadow: 0 2px 8px rgba(0,0,0,.08);
+      position: sticky; top: 0; z-index: 100;
+      display: flex; justify-content: center;
+      overflow-x: auto;
+    }
+    nav a {
+      text-decoration: none; color: var(--text-mid);
+      font-size: .85rem; font-weight: 500;
+      padding: 14px 18px;
+      border-bottom: 3px solid transparent;
+      white-space: nowrap;
+      transition: all .2s;
+    }
+    nav a:hover { color: var(--green-main); border-bottom-color: var(--green-main); background: var(--green-pale); }
+
+    /* ── Sections ── */
+    .section-outer { max-width: 980px; margin: 0 auto; padding: 40px 20px; }
+    .card {
+      background: #fff; border-radius: 24px;
+      box-shadow: var(--shadow); padding: 36px;
+      margin-bottom: 28px;
+    }
+    .section-title {
+      font-size: 1.5rem; font-weight: 700;
+      color: var(--green-dark); margin-bottom: 6px;
+      display: flex; align-items: center; gap: 10px;
+    }
+    .section-sub { color: #777; font-size: .9rem; margin-bottom: 28px; }
+
+    /* ════════════════════════════════
+       Section 1 — Animation
+    ════════════════════════════════ */
+    .toggle-row { display: flex; gap: 12px; margin-bottom: 22px; justify-content: center; }
+    .toggle-btn {
+      padding: 10px 28px;
+      border: 2px solid var(--green-main);
+      border-radius: 100px;
+      background: #fff; color: var(--green-main);
+      font-family: inherit; font-size: .9rem; font-weight: 600;
+      cursor: pointer; transition: all .2s;
+    }
+    .toggle-btn.active { background: var(--green-main); color: #fff; }
+
+    .anim-view { display: none; border-radius: 16px; overflow: hidden; }
+    .anim-view.active { display: block; }
+
+    /* Macro scene */
+    #macro-scene {
+      width: 100%; height: 360px;
+      background: linear-gradient(180deg, #87CEEB 0%, #B8E4F9 45%, #C8E6C9 100%);
+      position: relative; overflow: hidden;
+    }
+
+    /* Sun */
+    .sun-wrap {
+      position: absolute; top: 22px; left: 50%; transform: translateX(-50%);
+      width: 70px; height: 70px;
+    }
+    .sun-body {
+      position: absolute; inset: 0;
+      background: radial-gradient(circle, #FFE082, #FFD54F);
+      border-radius: 50%;
+      box-shadow: 0 0 28px #FFD54F88;
+      z-index: 2;
+    }
+    .sun-rays-wrap {
+      position: absolute;
+      top: 50%; left: 50%;
+      transform: translate(-50%,-50%);
+      width: 110px; height: 110px;
+      animation: sunSpin 10s linear infinite;
+      z-index: 1;
+    }
+    @keyframes sunSpin { to { transform: translate(-50%,-50%) rotate(360deg); } }
+    .sun-ray {
+      position: absolute;
+      width: 4px; height: 20px;
+      background: #FFD54F; border-radius: 2px;
+      left: 50%; top: 0;
+      transform-origin: 50% 55px;
+    }
+
+    /* Light beam */
+    .light-beam {
+      position: absolute; top: 92px; left: 50%;
+      transform: translateX(-50%);
+      width: 2px; height: 170px;
+      background: linear-gradient(180deg, #FFD54F88, transparent);
+      animation: beamPulse 2s ease-in-out infinite alternate;
+    }
+    @keyframes beamPulse { from { opacity: 1; } to { opacity: .3; } }
+
+    /* Leaf SVG */
+    .macro-leaf {
+      position: absolute; bottom: 58px; left: 50%;
+      transform: translateX(-50%);
+    }
+
+    /* Molecule tags */
+    .mol-tag {
+      position: absolute;
+      display: flex; align-items: center; gap: 6px;
+      background: #fff; border-radius: 100px;
+      padding: 6px 14px; font-size: .85rem; font-weight: 600;
+      box-shadow: 0 2px 10px rgba(0,0,0,.12);
+      animation: floatTag 3s ease-in-out infinite;
+    }
+    @keyframes floatTag {
+      0%,100% { transform: translateY(0); }
+      50%      { transform: translateY(-5px); }
+    }
+    .mol-co2  { left: 24px;  top: 120px; color: #5D4037; border-left: 4px solid #8D6E63; animation-delay: 0s; }
+    .mol-h2o  { left: 24px;  top: 175px; color: #1565C0; border-left: 4px solid #42A5F5; animation-delay: .6s; }
+    .mol-o2   { right: 24px; top: 120px; color: #1B5E20; border-left: 4px solid #66BB6A; animation-delay: .3s; }
+    .mol-gluc { right: 24px; top: 175px; color: #E65100; border-left: 4px solid #FFA726; animation-delay: .9s; }
+
+    /* Ground */
+    .macro-ground {
+      position: absolute; bottom: 0; left: 0; right: 0; height: 58px;
+      background: linear-gradient(180deg, #A5D6A7, #81C784);
+    }
+
+    .anim-caption {
+      background: #F1F8E9; text-align: center;
+      padding: 12px; font-size: .84rem; color: var(--text-mid);
+    }
+
+    /* Micro scene */
+    #micro-scene {
+      width: 100%; height: 360px;
+      background: radial-gradient(ellipse at center, #1B5E20 0%, #0A3D0A 100%);
+      position: relative; overflow: hidden;
+      display: flex; align-items: center; justify-content: center;
+    }
+    .micro-label {
+      position: absolute; top: 14px; left: 14px;
+      color: rgba(255,255,255,.6); font-size: .8rem;
+    }
+
+    /* light beam top */
+    .micro-beam {
+      position: absolute; top: 0; left: 50%;
+      transform: translateX(-50%);
+      width: 3px; height: 80px;
+      background: linear-gradient(180deg, #FFD54F, transparent);
+      animation: microBeam 1.8s ease-in-out infinite alternate;
+    }
+    @keyframes microBeam { from { opacity:1; height:80px; } to { opacity:.4; height:110px; } }
+
+    /* Chloroplast */
+    .chloroplast {
+      width: 280px; height: 150px;
+      background: linear-gradient(135deg, #2E7D32, #1B5E20);
+      border-radius: 50%;
+      border: 3px solid #A5D6A7;
+      box-shadow: 0 0 40px rgba(165,214,167,.25);
+      display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+      gap: 10px; position: relative;
+    }
+    .thylakoid {
+      width: 190px; height: 16px;
+      background: linear-gradient(90deg, #43A047, #66BB6A);
+      border-radius: 8px; position: relative; overflow: hidden;
+    }
+    .thylakoid::after {
+      content: '';
+      position: absolute; top: 0; left: -100%;
+      width: 60%; height: 100%;
+      background: linear-gradient(90deg, transparent, rgba(255,255,100,.55), transparent);
+      animation: thylShine 2.2s ease-in-out infinite;
+    }
+    .thylakoid:nth-child(2)::after { animation-delay: .5s; }
+    .thylakoid:nth-child(3)::after { animation-delay: 1s; }
+    @keyframes thylShine { 0% { left:-100%; } 100% { left:200%; } }
+
+    .chloro-name {
+      position: absolute; bottom: -28px;
+      color: #A5D6A7; font-size: .82rem; font-weight: 600;
+      white-space: nowrap;
+    }
+
+    /* Micro particles */
+    .mp {
+      position: absolute; width: 38px; height: 38px;
+      border-radius: 50%; display: flex; align-items: center;
+      justify-content: center; font-size: .72rem; font-weight: 700;
+    }
+    .mp-co2   { background: #BCAAA4; color: #4E342E; top: 125px; animation: mpLeft  3.5s ease-in-out infinite; }
+    .mp-h2o   { background: #B3E5FC; color: #01579B; top: 175px; animation: mpLeft  3.5s ease-in-out infinite; animation-delay:.9s; }
+    .mp-o2    { background: #C8E6C9; color: #1B5E20; top: 125px; animation: mpRight 3.5s ease-in-out infinite; animation-delay:1.4s; }
+    .mp-gluc  { background: #FFE0B2; color: #E65100; top: 175px; animation: mpRight 3.5s ease-in-out infinite; animation-delay:2s; }
+
+    @keyframes mpLeft  {
+      0%   { left:  16px; opacity: 0; }
+      25%  { opacity: 1; }
+      55%  { left: 155px; opacity: 1; }
+      70%  { left: 155px; opacity: 0; }
+      100% { left: 155px; opacity: 0; }
+    }
+    @keyframes mpRight {
+      0%   { right: 155px; opacity: 0; }
+      25%  { opacity: 1; }
+      55%  { right:  16px; opacity: 1; }
+      70%  { right:  16px; opacity: 0; }
+      100% { right:  16px; opacity: 0; }
+    }
+
+    /* ════════════════════════════════
+       Section 2 — Equation
+    ════════════════════════════════ */
+    .equation {
+      display: flex; align-items: center;
+      justify-content: center; flex-wrap: wrap;
+      gap: 14px; padding: 24px 0 20px;
+    }
+    .eq-item { text-align: center; }
+    .eq-icon    { font-size: 2.4rem; margin-bottom: 6px; }
+    .eq-formula { font-size: 1.1rem; font-weight: 700; color: var(--green-dark); }
+    .eq-name    { font-size: .78rem; color: #888; margin-top: 3px; }
+    .eq-op      { font-size: 2rem; font-weight: 700; color: var(--green-main); padding-top: 8px; }
+    .eq-arrow   { display: flex; flex-direction: column; align-items: center; gap: 2px; padding-top: 4px; }
+    .eq-arrow .arr { font-size: 2.2rem; color: var(--green-main); line-height: 1; }
+    .eq-arrow .lbl { font-size: .72rem; color: #999; white-space: nowrap; }
+
+    .eq-cards {
+      display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-top: 10px;
+    }
+    .eq-card {
+      border-radius: 16px; padding: 18px;
+    }
+    .eq-card.input  { background: #E3F2FD; border-left: 4px solid #42A5F5; }
+    .eq-card.output { background: #E8F5E9; border-left: 4px solid #66BB6A; }
+    .eq-card h4 { font-size: .95rem; font-weight: 700; margin-bottom: 8px; }
+    .eq-card.input  h4 { color: #1565C0; }
+    .eq-card.output h4 { color: #1B5E20; }
+    .eq-card ul { padding-left: 18px; line-height: 2.1; color: #444; font-size: .88rem; }
+
+    /* ════════════════════════════════
+       Section 3 — Leaf Structure
+    ════════════════════════════════ */
+    .leaf-layout { display: flex; gap: 28px; align-items: flex-start; }
+    .leaf-svg-col { flex: 1 1 280px; }
+    .leaf-info-col { flex: 1 1 220px; }
+    .leaf-info-box {
+      background: var(--green-pale); border-radius: 16px;
+      padding: 20px; border-left: 4px solid var(--green-main);
+      min-height: 160px;
+    }
+    .leaf-info-box h3 { font-size: 1.05rem; color: var(--green-dark); margin-bottom: 8px; }
+    .leaf-info-box p  { font-size: .88rem; line-height: 1.7; color: #555; }
+
+    .leaf-part { cursor: pointer; transition: filter .2s; }
+    .leaf-part:hover   { filter: brightness(1.15); }
+    .leaf-part.sel     { filter: brightness(1.25) drop-shadow(0 0 6px rgba(76,175,80,.7)); }
+
+    /* ════════════════════════════════
+       Section 4 — Factors
+    ════════════════════════════════ */
+    .factors-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 20px; }
+    .factor-card {
+      background: var(--green-pale); border-radius: 20px; padding: 24px; text-align: center;
+    }
+    .factor-icon { font-size: 2.4rem; margin-bottom: 10px; }
+    .factor-name { font-size: .95rem; font-weight: 700; color: var(--green-dark); margin-bottom: 14px; }
+    .factor-slider { width: 100%; accent-color: var(--green-main); cursor: pointer; }
+    .fbar-wrap { background: #ddd; border-radius: 100px; height: 12px; margin-top: 12px; overflow: hidden; }
+    .fbar { height: 100%; background: linear-gradient(90deg, #66BB6A, #2E7D32); border-radius: 100px; transition: width .3s; }
+    .fval { font-size: .84rem; color: #666; margin-top: 6px; }
+
+    .rate-box {
+      text-align: center; margin-top: 26px; padding: 22px;
+      background: linear-gradient(135deg, #E8F5E9, #C8E6C9); border-radius: 18px;
+    }
+    .rate-lbl { font-size: .9rem; color: var(--text-mid); margin-bottom: 6px; }
+    .rate-num { font-size: 2.6rem; font-weight: 900; color: var(--green-dark); }
+    .rate-bar-wrap { background: #bbb; border-radius: 100px; height: 14px; margin-top: 12px; overflow: hidden; }
+    .rate-bar { height: 100%; background: linear-gradient(90deg, #66BB6A, #1B5E20); border-radius: 100px; transition: width .5s ease; }
+    .rate-msg { font-size: .84rem; color: #666; margin-top: 10px; }
+
+    /* ════════════════════════════════
+       Section 5 — Comparison
+    ════════════════════════════════ */
+    .cmp-table {
+      width: 100%; border-collapse: separate; border-spacing: 0;
+      border-radius: 16px; overflow: hidden;
+      box-shadow: 0 2px 12px rgba(0,0,0,.08);
+    }
+    .cmp-table th { padding: 15px 18px; font-size: .95rem; font-weight: 700; }
+    .cmp-table th:first-child { background: #F5F5F5; color: #666; }
+    .cmp-table .h-photo { background: var(--green-main); color: #fff; }
+    .cmp-table .h-resp  { background: #EF5350;          color: #fff; }
+    .cmp-table td { padding: 13px 18px; font-size: .88rem; border-bottom: 1px solid #eee; }
+    .cmp-table tr:last-child td { border-bottom: none; }
+    .cmp-table td:first-child { background: #FAFAFA; font-weight: 600; color: #555; }
+    .cmp-table .c-photo { background: #F1F8E9; color: var(--green-dark); }
+    .cmp-table .c-resp  { background: #FFF3F3; color: #C62828; }
+
+    /* ════════════════════════════════
+       Section 6 — Quiz
+    ════════════════════════════════ */
+    .quiz-intro { text-align: center; padding: 24px 0 36px; }
+    .quiz-intro .qi-icon { font-size: 3.5rem; margin-bottom: 14px; }
+    .quiz-intro p { font-size: 1rem; color: #666; margin-bottom: 26px; }
+    .start-btn {
+      padding: 14px 44px;
+      background: linear-gradient(135deg, #43A047, #2E7D32);
+      color: #fff; border: none; border-radius: 100px;
+      font-family: inherit; font-size: 1.05rem; font-weight: 700;
+      cursor: pointer; box-shadow: 0 4px 16px rgba(46,125,50,.3);
+      transition: transform .1s, box-shadow .2s;
+    }
+    .start-btn:hover { transform: translateY(-2px); box-shadow: 0 6px 22px rgba(46,125,50,.4); }
+
+    #quizBody { display: none; }
+    .qprog { display: flex; align-items: center; gap: 12px; margin-bottom: 22px; }
+    .qprog-wrap { flex: 1; background: #E0E0E0; border-radius: 100px; height: 10px; overflow: hidden; }
+    .qprog-bar  { height: 100%; background: linear-gradient(90deg, #66BB6A, #2E7D32); border-radius: 100px; transition: width .4s; }
+    .qprog-txt  { font-size: .82rem; color: #999; white-space: nowrap; }
+
+    .q-card {
+      background: var(--green-pale); border-radius: 20px; padding: 26px;
+    }
+    .q-badge {
+      display: inline-block; background: var(--green-main); color: #fff;
+      border-radius: 100px; padding: 3px 14px; font-size: .75rem; font-weight: 600;
+      margin-bottom: 12px;
+    }
+    .q-text { font-size: 1rem; font-weight: 600; color: var(--text-dark); line-height: 1.55; margin-bottom: 20px; }
+
+    .opts-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    .opt-btn {
+      padding: 12px 14px; background: #fff;
+      border: 2px solid #E0E0E0; border-radius: 12px;
+      font-family: inherit; font-size: .88rem; cursor: pointer;
+      text-align: left; transition: all .2s; line-height: 1.4;
+    }
+    .opt-btn:hover:not(:disabled) { border-color: var(--green-main); background: var(--green-pale); }
+    .opt-btn.correct { border-color: #43A047; background: #E8F5E9; color: #1B5E20; font-weight: 600; }
+    .opt-btn.wrong   { border-color: #E53935; background: #FFEBEE; color: #B71C1C; }
+
+    .tf-row { display: flex; gap: 14px; }
+    .tf-btn {
+      flex: 1; padding: 15px;
+      background: #fff; border: 2px solid #E0E0E0; border-radius: 12px;
+      font-family: inherit; font-size: 1rem; font-weight: 700;
+      cursor: pointer; transition: all .2s;
+    }
+    .tf-btn:hover:not(:disabled) { border-color: var(--green-main); background: var(--green-pale); }
+    .tf-btn.correct { border-color: #43A047; background: #E8F5E9; color: #1B5E20; }
+    .tf-btn.wrong   { border-color: #E53935; background: #FFEBEE; color: #B71C1C; }
+
+    .q-fb {
+      margin-top: 14px; padding: 10px 16px; border-radius: 10px;
+      font-size: .88rem; font-weight: 500; display: none; line-height: 1.5;
+    }
+    .q-fb.correct { background: #E8F5E9; color: #2E7D32; }
+    .q-fb.wrong   { background: #FFEBEE; color: #C62828; }
+
+    .next-btn {
+      display: none; margin-top: 16px; padding: 11px 30px;
+      background: var(--green-main); color: #fff;
+      border: none; border-radius: 100px;
+      font-family: inherit; font-size: .92rem; font-weight: 600;
+      cursor: pointer; transition: background .2s;
+    }
+    .next-btn:hover { background: var(--green-dark); }
+
+    #quizResult { display: none; text-align: center; padding: 40px 20px; }
+    .res-emoji { font-size: 4rem; margin-bottom: 14px; }
+    .res-score { font-size: 3rem; font-weight: 900; color: var(--green-dark); }
+    .res-lbl   { font-size: .95rem; color: #888; margin-bottom: 6px; }
+    .res-msg   { font-size: 1rem; color: var(--text-mid); margin: 16px 0 28px; }
+    .retry-btn {
+      padding: 12px 34px; background: linear-gradient(135deg, #43A047, #2E7D32);
+      color: #fff; border: none; border-radius: 100px;
+      font-family: inherit; font-size: .95rem; font-weight: 600; cursor: pointer;
+    }
+
+    /* ── Footer ── */
+    footer {
+      text-align: center; padding: 22px;
+      background: var(--green-dark); color: rgba(255,255,255,.55);
+      font-size: .8rem;
+    }
+
+    /* ── Responsive ── */
+    @media (max-width: 640px) {
+      header h1 { font-size: 1.8rem; }
+      .card { padding: 22px 16px; }
+      .leaf-layout { flex-direction: column; }
+      .opts-grid { grid-template-columns: 1fr; }
+      .eq-cards  { grid-template-columns: 1fr; }
+      .cmp-table { font-size: .78rem; }
+      .cmp-table th, .cmp-table td { padding: 10px 10px; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- ══ Header ══════════════════════════════ -->
+<header>
+  <h1>🌿 光合作用</h1>
+  <p>探索植物如何利用陽光製造養分</p>
+</header>
+
+<!-- ══ Nav ══════════════════════════════════ -->
+<nav>
+  <a href="#s1">🎬 動畫</a>
+  <a href="#s2">⚗️ 方程式</a>
+  <a href="#s3">🍃 葉片結構</a>
+  <a href="#s4">🔬 影響因素</a>
+  <a href="#s5">⚡ 比較</a>
+  <a href="#s6">📝 測驗</a>
+</nav>
+
+<!-- ══════════════════════════════════════════
+     Section 1 — Animation
+══════════════════════════════════════════ -->
+<div class="section-outer" id="s1">
+  <div class="card">
+    <div class="section-title">🎬 光合作用動畫</div>
+    <div class="section-sub">切換宏觀與微觀視角，了解光合作用的過程</div>
+
+    <div class="toggle-row">
+      <button class="toggle-btn active" onclick="switchAnim('macro',this)">🌿 宏觀視角（葉片）</button>
+      <button class="toggle-btn"        onclick="switchAnim('micro',this)">🔬 微觀視角（葉綠體）</button>
+    </div>
+
+    <!-- Macro -->
+    <div class="anim-view active" id="macro-view">
+      <div id="macro-scene">
+        <!-- Sun -->
+        <div class="sun-wrap">
+          <div class="sun-rays-wrap" id="sunRays"></div>
+          <div class="sun-body"></div>
+        </div>
+        <!-- Light beam -->
+        <div class="light-beam"></div>
+        <!-- Leaf -->
+        <div class="macro-leaf">
+          <svg width="150" height="115" viewBox="0 0 150 115">
+            <line x1="75" y1="115" x2="75" y2="88" stroke="#388E3C" stroke-width="6" stroke-linecap="round"/>
+            <path d="M75,88 C38,68 18,38 38,13 C52,0 75,6 75,20 C75,6 98,0 112,13 C132,38 112,68 75,88 Z" fill="#4CAF50"/>
+            <line x1="75" y1="18" x2="75" y2="86" stroke="#2E7D32" stroke-width="2" opacity=".65"/>
+            <line x1="75" y1="42" x2="45" y2="28" stroke="#2E7D32" stroke-width="1.5" opacity=".55"/>
+            <line x1="75" y1="55" x2="42" y2="50" stroke="#2E7D32" stroke-width="1.5" opacity=".55"/>
+            <line x1="75" y1="66" x2="48" y2="64" stroke="#2E7D32" stroke-width="1.5" opacity=".55"/>
+            <line x1="75" y1="42" x2="105" y2="28" stroke="#2E7D32" stroke-width="1.5" opacity=".55"/>
+            <line x1="75" y1="55" x2="108" y2="50" stroke="#2E7D32" stroke-width="1.5" opacity=".55"/>
+            <line x1="75" y1="66" x2="102" y2="64" stroke="#2E7D32" stroke-width="1.5" opacity=".55"/>
+          </svg>
+        </div>
+        <!-- Input molecules -->
+        <div class="mol-tag mol-co2">☁️ CO₂ 二氧化碳 →</div>
+        <div class="mol-tag mol-h2o">💧 H₂O 水 →</div>
+        <!-- Output molecules -->
+        <div class="mol-tag mol-o2">← O₂ 氧氣 🌬️</div>
+        <div class="mol-tag mol-gluc">← 葡萄糖 🍬</div>
+        <!-- Ground -->
+        <div class="macro-ground"></div>
+      </div>
+      <div class="anim-caption">💡 植物吸收陽光的能量，利用二氧化碳和水，製造氧氣和葡萄糖</div>
+    </div>
+
+    <!-- Micro -->
+    <div class="anim-view" id="micro-view">
+      <div id="micro-scene">
+        <div class="micro-label">🔬 葉肉細胞內部</div>
+        <div class="micro-beam"></div>
+        <!-- Particles IN -->
+        <div class="mp mp-co2">CO₂</div>
+        <div class="mp mp-h2o">H₂O</div>
+        <!-- Chloroplast -->
+        <div class="chloroplast">
+          <div class="thylakoid"></div>
+          <div class="thylakoid"></div>
+          <div class="thylakoid"></div>
+          <div class="chloro-name">葉綠體（光合作用的場所）</div>
+        </div>
+        <!-- Particles OUT -->
+        <div class="mp mp-o2">O₂</div>
+        <div class="mp mp-gluc">糖</div>
+      </div>
+      <div class="anim-caption">💡 葉綠體內的類囊體薄膜含有葉綠素，可吸收光能驅動光合作用</div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════
+     Section 2 — Equation
+══════════════════════════════════════════ -->
+<div class="section-outer" id="s2">
+  <div class="card">
+    <div class="section-title">⚗️ 光合作用方程式</div>
+    <div class="section-sub">光合作用的原料與產物一目瞭然</div>
+
+    <div class="equation">
+      <div class="eq-item">
+        <div class="eq-icon">☁️</div>
+        <div class="eq-formula">6CO₂</div>
+        <div class="eq-name">二氧化碳</div>
+      </div>
+      <div class="eq-op">+</div>
+      <div class="eq-item">
+        <div class="eq-icon">💧</div>
+        <div class="eq-formula">6H₂O</div>
+        <div class="eq-name">水</div>
+      </div>
+      <div class="eq-op">+</div>
+      <div class="eq-item">
+        <div class="eq-icon">☀️</div>
+        <div class="eq-formula" style="color:#E65100;">光能</div>
+        <div class="eq-name">陽光</div>
+      </div>
+      <div class="eq-arrow">
+        <span class="arr">→</span>
+        <span class="lbl">葉綠體</span>
+      </div>
+      <div class="eq-item">
+        <div class="eq-icon">🍬</div>
+        <div class="eq-formula">C₆H₁₂O₆</div>
+        <div class="eq-name">葡萄糖</div>
+      </div>
+      <div class="eq-op">+</div>
+      <div class="eq-item">
+        <div class="eq-icon">🌬️</div>
+        <div class="eq-formula">6O₂</div>
+        <div class="eq-name">氧氣</div>
+      </div>
+    </div>
+
+    <div class="eq-cards">
+      <div class="eq-card input">
+        <h4>📥 原料（輸入）</h4>
+        <ul>
+          <li>二氧化碳（CO₂）—— 從空氣中吸收</li>
+          <li>水（H₂O）—— 從土壤中吸收</li>
+          <li>光能 —— 來自太陽</li>
+        </ul>
+      </div>
+      <div class="eq-card output">
+        <h4>📤 產物（輸出）</h4>
+        <ul>
+          <li>葡萄糖（C₆H₁₂O₆）—— 植物的養分</li>
+          <li>氧氣（O₂）—— 釋放到空氣中</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════
+     Section 3 — Leaf Structure
+══════════════════════════════════════════ -->
+<div class="section-outer" id="s3">
+  <div class="card">
+    <div class="section-title">🍃 光合作用發生在哪裡？</div>
+    <div class="section-sub">點擊葉片各部位，了解它們在光合作用中的角色</div>
+
+    <div class="leaf-layout">
+      <!-- SVG cross-section -->
+      <div class="leaf-svg-col">
+        <svg id="leafSVG" width="100%" viewBox="0 0 320 390" style="cursor:pointer;display:block;">
+          <rect width="320" height="390" fill="#F1F8E9" rx="14"/>
+          <text x="160" y="28" text-anchor="middle"
+                font-family="Noto Sans TC,Microsoft JhengHei,sans-serif"
+                font-size="12" fill="#777">葉片橫切面示意圖（點擊各部位）</text>
+
+          <!-- Upper epidermis -->
+          <g class="leaf-part" id="lp-ue" onclick="leafClick('ue')">
+            <rect x="55" y="46" width="210" height="32" rx="8" fill="#C5E1A5" stroke="#7CB342" stroke-width="2"/>
+            <text x="160" y="67" text-anchor="middle"
+                  font-family="Noto Sans TC,Microsoft JhengHei,sans-serif"
+                  font-size="12" fill="#33691E">上表皮細胞</text>
+          </g>
+
+          <!-- Palisade layer -->
+          <g class="leaf-part" id="lp-pal" onclick="leafClick('pal')">
+            <rect x="55" y="82" width="210" height="85" rx="4" fill="#66BB6A" stroke="#388E3C" stroke-width="2"/>
+            <!-- Chloroplasts -->
+            <ellipse cx="95"  cy="108" rx="15" ry="8" fill="#2E7D32" opacity=".8"/>
+            <ellipse cx="135" cy="123" rx="15" ry="8" fill="#2E7D32" opacity=".8"/>
+            <ellipse cx="175" cy="108" rx="15" ry="8" fill="#2E7D32" opacity=".8"/>
+            <ellipse cx="220" cy="123" rx="15" ry="8" fill="#2E7D32" opacity=".8"/>
+            <ellipse cx="110" cy="148" rx="15" ry="8" fill="#2E7D32" opacity=".8"/>
+            <ellipse cx="200" cy="150" rx="15" ry="8" fill="#2E7D32" opacity=".8"/>
+            <text x="160" y="162" text-anchor="middle"
+                  font-family="Noto Sans TC,Microsoft JhengHei,sans-serif"
+                  font-size="11" fill="#fff">柵狀組織（含葉綠體）</text>
+          </g>
+
+          <!-- Spongy layer -->
+          <g class="leaf-part" id="lp-sp" onclick="leafClick('sp')">
+            <rect x="55" y="171" width="210" height="85" rx="4" fill="#A5D6A7" stroke="#66BB6A" stroke-width="2"/>
+            <ellipse cx="95"  cy="200" rx="20" ry="13" fill="#E8F5E9" opacity=".75"/>
+            <ellipse cx="155" cy="192" rx="24" ry="15" fill="#E8F5E9" opacity=".75"/>
+            <ellipse cx="225" cy="205" rx="17" ry="11" fill="#E8F5E9" opacity=".75"/>
+            <ellipse cx="125" cy="230" rx="19" ry="11" fill="#E8F5E9" opacity=".75"/>
+            <ellipse cx="200" cy="238" rx="16" ry="10" fill="#E8F5E9" opacity=".75"/>
+            <text x="160" y="252" text-anchor="middle"
+                  font-family="Noto Sans TC,Microsoft JhengHei,sans-serif"
+                  font-size="11" fill="#2E7D32">海綿組織（有氣室）</text>
+          </g>
+
+          <!-- Lower epidermis -->
+          <g class="leaf-part" id="lp-le" onclick="leafClick('le')">
+            <rect x="55" y="260" width="210" height="30" rx="8" fill="#C5E1A5" stroke="#7CB342" stroke-width="2"/>
+            <text x="160" y="280" text-anchor="middle"
+                  font-family="Noto Sans TC,Microsoft JhengHei,sans-serif"
+                  font-size="12" fill="#33691E">下表皮細胞</text>
+          </g>
+
+          <!-- Stomata -->
+          <g class="leaf-part" id="lp-st" onclick="leafClick('st')">
+            <ellipse cx="107" cy="302" rx="20" ry="11" fill="#FFF9C4" stroke="#F9A825" stroke-width="2"/>
+            <ellipse cx="107" cy="302" rx="8" ry="4"  fill="#F9A825" opacity=".65"/>
+            <ellipse cx="213" cy="302" rx="20" ry="11" fill="#FFF9C4" stroke="#F9A825" stroke-width="2"/>
+            <ellipse cx="213" cy="302" rx="8" ry="4"  fill="#F9A825" opacity=".65"/>
+            <text x="160" y="328" text-anchor="middle"
+                  font-family="Noto Sans TC,Microsoft JhengHei,sans-serif"
+                  font-size="11" fill="#F57F17">氣孔（控制氣體進出）</text>
+          </g>
+
+          <!-- Vascular bundle -->
+          <g class="leaf-part" id="lp-vb" onclick="leafClick('vb')">
+            <rect x="138" y="130" width="44" height="84" rx="8" fill="#FFCC80" stroke="#FB8C00" stroke-width="2"/>
+            <text x="160" y="147" text-anchor="middle"
+                  font-family="Noto Sans TC,Microsoft JhengHei,sans-serif"
+                  font-size="10" fill="#E65100">葉脈</text>
+            <text x="160" y="162" text-anchor="middle"
+                  font-family="Noto Sans TC,Microsoft JhengHei,sans-serif"
+                  font-size="9" fill="#E65100">（維管束）</text>
+          </g>
+
+          <!-- Sun icon + arrow -->
+          <text x="20" y="72" font-size="20">☀️</text>
+          <line x1="44" y1="64" x2="55" y2="64" stroke="#FFD54F" stroke-width="2" stroke-dasharray="3,3"/>
+
+          <!-- CO2 enters -->
+          <text x="272" y="310" font-size="18">☁️</text>
+          <line x1="272" y1="304" x2="262" y2="304" stroke="#90A4AE" stroke-width="2"/>
+          <polygon points="262,300 262,308 255,304" fill="#90A4AE"/>
+
+          <!-- O2 exits -->
+          <text x="272" y="280" font-size="18">🌬</text>
+          <line x1="265" y1="274" x2="275" y2="274" stroke="#66BB6A" stroke-width="2"/>
+        </svg>
+      </div>
+
+      <!-- Info panel -->
+      <div class="leaf-info-col">
+        <div class="leaf-info-box" id="leafInfoBox">
+          <h3>👆 點擊左側葉片結構</h3>
+          <p>點擊葉片的各個部位，可以了解它們在光合作用中扮演的角色。</p>
+        </div>
+
+        <!-- Quick reference chips -->
+        <div style="margin-top:16px;display:flex;flex-wrap:wrap;gap:8px;">
+          <button onclick="leafClick('ue')" style="padding:6px 14px;border:1.5px solid #7CB342;border-radius:100px;background:#fff;font-size:.78rem;cursor:pointer;font-family:inherit;color:#33691E;">上表皮</button>
+          <button onclick="leafClick('pal')" style="padding:6px 14px;border:1.5px solid #388E3C;border-radius:100px;background:#fff;font-size:.78rem;cursor:pointer;font-family:inherit;color:#2E7D32;">柵狀組織</button>
+          <button onclick="leafClick('sp')" style="padding:6px 14px;border:1.5px solid #66BB6A;border-radius:100px;background:#fff;font-size:.78rem;cursor:pointer;font-family:inherit;color:#2E7D32;">海綿組織</button>
+          <button onclick="leafClick('le')" style="padding:6px 14px;border:1.5px solid #7CB342;border-radius:100px;background:#fff;font-size:.78rem;cursor:pointer;font-family:inherit;color:#33691E;">下表皮</button>
+          <button onclick="leafClick('st')" style="padding:6px 14px;border:1.5px solid #F9A825;border-radius:100px;background:#fff;font-size:.78rem;cursor:pointer;font-family:inherit;color:#F57F17;">氣孔</button>
+          <button onclick="leafClick('vb')" style="padding:6px 14px;border:1.5px solid #FB8C00;border-radius:100px;background:#fff;font-size:.78rem;cursor:pointer;font-family:inherit;color:#E65100;">葉脈</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════
+     Section 4 — Factors
+══════════════════════════════════════════ -->
+<div class="section-outer" id="s4">
+  <div class="card">
+    <div class="section-title">🔬 影響光合作用的因素</div>
+    <div class="section-sub">調整下方的滑桿，觀察光合作用速率的變化</div>
+
+    <div class="factors-grid">
+      <div class="factor-card">
+        <div class="factor-icon">☀️</div>
+        <div class="factor-name">光照強度</div>
+        <input type="range" class="factor-slider" id="sLight" min="0" max="100" value="50" oninput="calcRate()">
+        <div class="fbar-wrap"><div class="fbar" id="bLight" style="width:50%"></div></div>
+        <div class="fval" id="vLight">50%</div>
+      </div>
+      <div class="factor-card">
+        <div class="factor-icon">💧</div>
+        <div class="factor-name">水分（H₂O）</div>
+        <input type="range" class="factor-slider" id="sWater" min="0" max="100" value="50" oninput="calcRate()">
+        <div class="fbar-wrap"><div class="fbar" id="bWater" style="width:50%"></div></div>
+        <div class="fval" id="vWater">50%</div>
+      </div>
+      <div class="factor-card">
+        <div class="factor-icon">☁️</div>
+        <div class="factor-name">二氧化碳濃度</div>
+        <input type="range" class="factor-slider" id="sCO2" min="0" max="100" value="50" oninput="calcRate()">
+        <div class="fbar-wrap"><div class="fbar" id="bCO2" style="width:50%"></div></div>
+        <div class="fval" id="vCO2">50%</div>
+      </div>
+    </div>
+
+    <div class="rate-box">
+      <div class="rate-lbl">🌿 光合作用速率</div>
+      <div class="rate-num" id="rateNum">50%</div>
+      <div class="rate-bar-wrap"><div class="rate-bar" id="rateBar" style="width:50%"></div></div>
+      <div class="rate-msg" id="rateMsg">調整滑桿觀察變化</div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════
+     Section 5 — Comparison
+══════════════════════════════════════════ -->
+<div class="section-outer" id="s5">
+  <div class="card">
+    <div class="section-title">⚡ 光合作用 vs 細胞呼吸</div>
+    <div class="section-sub">兩者是相反的過程，互相配合維持生命活動</div>
+
+    <table class="cmp-table">
+      <thead>
+        <tr>
+          <th></th>
+          <th class="h-photo">🌿 光合作用</th>
+          <th class="h-resp">🔥 細胞呼吸</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>發生場所</td>
+          <td class="c-photo">葉綠體（含葉綠素的細胞）</td>
+          <td class="c-resp">粒線體（幾乎所有細胞）</td>
+        </tr>
+        <tr>
+          <td>需要光嗎？</td>
+          <td class="c-photo">✅ 需要光能</td>
+          <td class="c-resp">❌ 不需要光</td>
+        </tr>
+        <tr>
+          <td>原料</td>
+          <td class="c-photo">CO₂ ＋ H₂O ＋ 光能</td>
+          <td class="c-resp">葡萄糖 ＋ O₂</td>
+        </tr>
+        <tr>
+          <td>產物</td>
+          <td class="c-photo">葡萄糖 ＋ O₂</td>
+          <td class="c-resp">CO₂ ＋ H₂O ＋ 能量</td>
+        </tr>
+        <tr>
+          <td>能量變化</td>
+          <td class="c-photo">☀️ 儲存能量（製造養分）</td>
+          <td class="c-resp">🔋 釋放能量（供生命活動）</td>
+        </tr>
+        <tr>
+          <td>發生時間</td>
+          <td class="c-photo">白天（有光時）</td>
+          <td class="c-resp">全天候（24 小時）</td>
+        </tr>
+        <tr>
+          <td>誰能進行？</td>
+          <td class="c-photo">植物、藻類（有葉綠素）</td>
+          <td class="c-resp">動物、植物、微生物均可</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════
+     Section 6 — Quiz
+══════════════════════════════════════════ -->
+<div class="section-outer" id="s6">
+  <div class="card">
+    <div class="section-title">📝 小測驗</div>
+    <div class="section-sub">測試你對光合作用的了解！</div>
+
+    <!-- Intro screen -->
+    <div class="quiz-intro" id="quizIntro">
+      <div class="qi-icon">🌿</div>
+      <p>共 8 題，包含是非題和選擇題<br>每題作答後立即顯示解說</p>
+      <button class="start-btn" onclick="startQuiz()">開始測驗 🚀</button>
+    </div>
+
+    <!-- Quiz body -->
+    <div id="quizBody">
+      <div class="qprog">
+        <div class="qprog-wrap"><div class="qprog-bar" id="qProgBar" style="width:0%"></div></div>
+        <div class="qprog-txt" id="qProgTxt">第 1 / 8 題</div>
+      </div>
+      <div id="qArea"></div>
+    </div>
+
+    <!-- Result screen -->
+    <div id="quizResult">
+      <div class="res-emoji" id="resEmoji">🎉</div>
+      <div class="res-lbl">答對題數</div>
+      <div class="res-score" id="resScore">0 / 8</div>
+      <div class="res-msg" id="resMsg"></div>
+      <button class="retry-btn" onclick="retryQuiz()">再試一次 🔄</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══ Footer ════════════════════════════════ -->
+<footer>🌿 光合作用互動 Dashboard　|　適用對象：國小～國中　|　自然數位教材</footer>
+
+<!-- ══════════════════════════════════════════
+     JavaScript
+══════════════════════════════════════════ -->
+<script>
+/* ─── Build Sun Rays ─── */
+(function(){
+  const wrap = document.getElementById('sunRays');
+  for(let i=0;i<8;i++){
+    const r=document.createElement('div');
+    r.className='sun-ray';
+    r.style.transform=`rotate(${i*45}deg) translateY(-54px)`;
+    wrap.appendChild(r);
+  }
+})();
+
+/* ─── Section 1: Toggle ─── */
+function switchAnim(type, btn){
+  document.getElementById('macro-view').classList.toggle('active', type==='macro');
+  document.getElementById('micro-view').classList.toggle('active', type==='micro');
+  document.querySelectorAll('.toggle-btn').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+}
+
+/* ─── Section 3: Leaf Parts ─── */
+const leafData = {
+  ue:  { title:'上表皮細胞',
+         body:'葉片最外層的透明細胞，讓陽光穿透進入葉肉。表面有一層蠟質（角質層），可防止水分散失、保護葉片。' },
+  pal: { title:'柵狀組織',
+         body:'緊靠上表皮，細胞排列整齊、含有大量葉綠體，是光合作用最旺盛的場所！葉綠素就位在葉綠體的類囊體薄膜上，能吸收太陽光。' },
+  sp:  { title:'海綿組織',
+         body:'細胞排列鬆散，有許多氣室（空腔），讓 CO₂ 和 O₂ 在葉片內部自由流動。同樣含有葉綠體，也能進行光合作用。' },
+  le:  { title:'下表皮細胞',
+         body:'葉片下方的保護層，分布著許多氣孔。下表皮的氣孔比上表皮多，是氣體進出的主要管道。' },
+  st:  { title:'氣孔',
+         body:'由兩個「保衛細胞」圍成的小孔，是植物與外界交換氣體的通道。白天光線充足時打開，讓 CO₂ 進入、O₂ 排出；缺水時關閉減少蒸散。' },
+  vb:  { title:'葉脈（維管束）',
+         body:'由木質部和韌皮部組成。木質部負責把根部吸收的水分和礦物質輸送到葉片；韌皮部負責把光合作用製造的葡萄糖輸送到植物各部位。' }
+};
+
+function leafClick(id){
+  document.querySelectorAll('.leaf-part').forEach(el=>el.classList.remove('sel'));
+  document.getElementById('lp-'+id)?.classList.add('sel');
+  const d=leafData[id];
+  if(d) document.getElementById('leafInfoBox').innerHTML=`<h3>${d.title}</h3><p>${d.body}</p>`;
+}
+
+/* ─── Section 4: Factors ─── */
+function calcRate(){
+  const l=+document.getElementById('sLight').value;
+  const w=+document.getElementById('sWater').value;
+  const c=+document.getElementById('sCO2').value;
+
+  document.getElementById('bLight').style.width=l+'%';
+  document.getElementById('bWater').style.width=w+'%';
+  document.getElementById('bCO2').style.width=c+'%';
+  document.getElementById('vLight').textContent=l+'%';
+  document.getElementById('vWater').textContent=w+'%';
+  document.getElementById('vCO2').textContent=c+'%';
+
+  const rate=Math.round(Math.min(l,w,c));
+  document.getElementById('rateNum').textContent=rate+'%';
+  document.getElementById('rateBar').style.width=rate+'%';
+
+  let msg='';
+  if(rate===0){ msg='⚠️ 缺少必要條件，光合作用停止！'; }
+  else if(rate>80){ msg='🌟 條件充足，光合作用旺盛進行！'; }
+  else{
+    const lim=Math.min(l,w,c);
+    if(lim===l)      msg='☀️ 光照不足是目前的限制因素';
+    else if(lim===w) msg='💧 水分不足是目前的限制因素';
+    else             msg='☁️ CO₂ 不足是目前的限制因素';
+  }
+  document.getElementById('rateMsg').textContent=msg;
+}
+
+/* ─── Section 6: Quiz ─── */
+const Qs=[
+  { type:'tf', text:'植物進行光合作用需要陽光。', ans:true,
+    exp:'✅ 正確！光合作用需要光能，通常來自太陽光，沒有光就無法進行光合作用。' },
+  { type:'tf', text:'光合作用會產生二氧化碳（CO₂）。', ans:false,
+    exp:'❌ 不正確！光合作用是「吸收」CO₂，並產生氧氣（O₂）和葡萄糖。（產生 CO₂ 的是細胞呼吸！）' },
+  { type:'mc', text:'光合作用主要在植物的哪個結構中進行？',
+    opts:['A. 細胞核','B. 粒線體','C. 葉綠體','D. 液泡'], ans:'C',
+    exp:'✅ 正確是 C。葉綠體含葉綠素，能吸收光能，是光合作用的場所。' },
+  { type:'mc', text:'光合作用的原料是什麼？',
+    opts:['A. 氧氣和葡萄糖','B. 二氧化碳和水','C. 氮氣和水','D. 氧氣和水'], ans:'B',
+    exp:'✅ 正確是 B。原料是 CO₂ 和 H₂O，加上光能。' },
+  { type:'tf', text:'動物也能進行光合作用。', ans:false,
+    exp:'❌ 不正確！動物沒有葉綠體，無法光合作用。只有含葉綠素的植物、藻類才能。' },
+  { type:'mc', text:'植物葉片上，控制氣體進出的構造叫做什麼？',
+    opts:['A. 葉脈','B. 葉綠體','C. 氣孔','D. 細胞壁'], ans:'C',
+    exp:'✅ 正確是 C。氣孔由保衛細胞控制開關，讓 CO₂ 進入、O₂ 排出。' },
+  { type:'mc', text:'以下哪一項是光合作用的「產物」（不是原料）？',
+    opts:['A. 二氧化碳','B. 水','C. 陽光','D. 葡萄糖'], ans:'D',
+    exp:'✅ 正確是 D。葡萄糖是光合作用製造的養分；CO₂、水、陽光都是原料。' },
+  { type:'tf', text:'植物白天進行光合作用，晚上則完全停止所有生命活動。', ans:false,
+    exp:'❌ 不正確！植物晚上雖無法光合作用，但仍持續進行細胞呼吸，分解葡萄糖獲取能量。' }
+];
+
+let qIdx=0, score=0, answered=false;
+
+function startQuiz(){
+  qIdx=0; score=0; answered=false;
+  document.getElementById('quizIntro').style.display='none';
+  document.getElementById('quizBody').style.display='block';
+  document.getElementById('quizResult').style.display='none';
+  renderQ();
+}
+
+function renderQ(){
+  answered=false;
+  const q=Qs[qIdx];
+  document.getElementById('qProgBar').style.width=(qIdx/Qs.length*100)+'%';
+  document.getElementById('qProgTxt').textContent=`第 ${qIdx+1} / ${Qs.length} 題`;
+
+  let html=`<div class="q-card">
+    <span class="q-badge">${q.type==='tf'?'是非題':'選擇題'}</span>
+    <div class="q-text">Q${qIdx+1}. ${q.text}</div>`;
+
+  if(q.type==='tf'){
+    html+=`<div class="tf-row">
+      <button class="tf-btn" onclick="answerTF(true,this)">⭕ 正確</button>
+      <button class="tf-btn" onclick="answerTF(false,this)">❌ 錯誤</button>
+    </div>`;
+  } else {
+    html+=`<div class="opts-grid">`;
+    q.opts.forEach((o,i)=>{
+      const l=['A','B','C','D'][i];
+      html+=`<button class="opt-btn" onclick="answerMC('${l}',this)">${o}</button>`;
+    });
+    html+=`</div>`;
+  }
+
+  html+=`<div class="q-fb" id="qFB"></div>
+    <button class="next-btn" id="nextBtn" onclick="nextQ()">
+      ${qIdx<Qs.length-1?'下一題 →':'查看結果 🎉'}
+    </button>
+  </div>`;
+  document.getElementById('qArea').innerHTML=html;
+}
+
+function answerTF(val, btn){
+  if(answered) return; answered=true;
+  const q=Qs[qIdx];
+  const ok=(val===q.ans);
+  if(ok) score++;
+  btn.classList.add(ok?'correct':'wrong');
+  document.querySelectorAll('.tf-btn').forEach(b=>{
+    b.disabled=true;
+    if(b.textContent.includes('正確')===q.ans) b.classList.add('correct');
+  });
+  showFB(ok, q.exp);
+}
+
+function answerMC(letter, btn){
+  if(answered) return; answered=true;
+  const q=Qs[qIdx];
+  const ok=(letter===q.ans);
+  if(ok) score++;
+  btn.classList.add(ok?'correct':'wrong');
+  document.querySelectorAll('.opt-btn').forEach(b=>{
+    b.disabled=true;
+    if(b.textContent.startsWith(q.ans+'.')) b.classList.add('correct');
+  });
+  showFB(ok, q.exp);
+}
+
+function showFB(ok, exp){
+  const fb=document.getElementById('qFB');
+  fb.className='q-fb '+(ok?'correct':'wrong');
+  fb.textContent=exp;
+  fb.style.display='block';
+  document.getElementById('nextBtn').style.display='inline-block';
+}
+
+function nextQ(){
+  qIdx++;
+  if(qIdx>=Qs.length) showResult();
+  else renderQ();
+}
+
+function showResult(){
+  document.getElementById('quizBody').style.display='none';
+  document.getElementById('quizResult').style.display='block';
+  const pct=score/Qs.length;
+  let emoji,msg;
+  if(pct===1)       { emoji='🏆'; msg='滿分！你對光合作用瞭如指掌，超級棒！'; }
+  else if(pct>=.75) { emoji='🌟'; msg='非常好！再複習一下錯題，就能完全掌握！'; }
+  else if(pct>=.5)  { emoji='👍'; msg='不錯喔！繼續加油，多看幾次動畫和說明就能進步！'; }
+  else              { emoji='🌱'; msg='沒關係！再仔細看看各單元，重新挑戰吧！'; }
+  document.getElementById('resEmoji').textContent=emoji;
+  document.getElementById('resScore').textContent=score+' / '+Qs.length;
+  document.getElementById('resMsg').textContent=msg;
+}
+
+function retryQuiz(){
+  document.getElementById('quizResult').style.display='none';
+  document.getElementById('quizIntro').style.display='block';
+}
+</script>
+</body>
+</html>
